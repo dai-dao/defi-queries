@@ -63,22 +63,23 @@ ORDER BY hour_of_day
 
 
 
-# Define the base time-series chart.
-def get_chart(data):
-    hover = alt.selection_single(
-        fields=["transact_date"],
-        nearest=True,
-        on="mouseover",
-        empty="none",
-    )
+def get_chart(title, data, x, y, x_title):
 
-    chart = alt.Chart(data, title="Activity").mark_line().encode(
-                                                                    x=alt.X("transact_date", axis=alt.Axis(title=None)),
-                                                                    y=alt.X("transac_count", axis=alt.Axis(title="Transactions")))
+    chart = alt.Chart(data, title=title)\
+                .mark_bar()\
+                .encode(x=alt.X(x, axis=alt.Axis(title=None)),
+                        y=alt.X(y, axis=alt.Axis(title="Transactions")))
     chart.configure_axisX(title=None)
     lines = (chart)
 
+
     # Draw points on the line, and highlight based on selection
+    hover = alt.selection_single(
+                    fields=[x],
+                    nearest=True,
+                    on="mouseover",
+                    empty="none",
+        )
     points = lines.transform_filter(hover).mark_circle(size=65)
 
     # Draw a rule at the location of the selection
@@ -86,12 +87,12 @@ def get_chart(data):
         alt.Chart(data)
         .mark_rule()
         .encode(
-            x="yearmonthdate(transact_date)",
-            y="transac_count",
+            x=x,
+            y=y,
             opacity=alt.condition(hover, alt.value(0.3), alt.value(0)),
             tooltip=[
-                alt.Tooltip("transact_date", title="Date"),
-                alt.Tooltip("transac_count", title="Transaction Counts"),
+                alt.Tooltip(x, title=x_title),
+                alt.Tooltip(y, title="Transaction Counts"),
             ],
         )
         .add_selection(hover)
@@ -103,9 +104,28 @@ def get_chart(data):
 
 
 
-chart = get_chart(transaction_counts_by_date)
+transaction_counts_by_date_chart = get_chart("Activity", transaction_counts_by_date, 
+                                            "transact_date", "transac_count", "Date")
+transaction_counts_by_weekday_chart = get_chart("Day of week", transaction_counts_by_weekday, 
+                                            "day_of_week", "transac_count", "")
+transaction_counts_by_hour_chart = get_chart("Hour of day (UTC)", transaction_counts_by_hour, 
+                                            "hour_of_day", "transac_count", "")
+
+
 
 st.altair_chart(
-    chart.interactive(),
+    transaction_counts_by_date_chart.interactive(),
     use_container_width=True
+)
+
+
+st.altair_chart(
+    transaction_counts_by_weekday_chart.interactive(),
+    use_container_width=False
+)
+
+
+st.altair_chart(
+    transaction_counts_by_hour_chart.interactive(),
+    use_container_width=False
 )
